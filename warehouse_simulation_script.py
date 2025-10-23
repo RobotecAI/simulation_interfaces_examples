@@ -2,6 +2,7 @@ import time
 import rclpy
 import argparse
 import os
+import logging
 import numpy as np
 
 from rclpy.node import Node
@@ -327,6 +328,7 @@ def spawn_boxes(node: Node, service_name: str, step: int) -> bool:
 
 
 def loop_simulation(node: Node, sim_backend: str):
+    logger = logging.getLogger(__name__)
     dingo_positions = [
         (-4.0, -2.5, 0.0, 0.0),
         (0.5, -3.5, 0.0, 1.5708),
@@ -340,12 +342,14 @@ def loop_simulation(node: Node, sim_backend: str):
     dingo_cmd_vel_pub = node.create_publisher(Twist, '/cmd_vel', 10)
     cmd_vel = Twist()
     for loop_iteration in range(3):
+        logger.info(f"\t* loop {loop_iteration + 1}/3")
         spawn_boxes(node, SPAWN_ENTITY_SERVICE, loop_iteration)
         pose = PoseStamped()
         pose.pose.position = Point(x=dingo_positions[loop_iteration][0],
                                    y=dingo_positions[loop_iteration][1],
                                    z=dingo_positions[loop_iteration][2])
         pose.pose.orientation = yaw_to_quaternion(dingo_positions[loop_iteration][3])
+        logger.info("\tMoving Dingo to start position")
         set_entity_state(node, SET_ENTITY_STATE_SERVICE, "Dingo", pose)
         target_reached = False
         target_pos = target_positions[loop_iteration]
@@ -362,11 +366,13 @@ def loop_simulation(node: Node, sim_backend: str):
             dx = target_pos.x - current_pos.x
             dy = target_pos.y - current_pos.y
             if np.sqrt(dx**2 + dy**2) < 0.5:
+                logger.info("\tDingo reached target position")
                 target_reached = True
             else:
                 cmd_vel.linear.x = 0.5
                 dingo_cmd_vel_pub.publish(cmd_vel)
-        
+
+        logger.info("\tMoving UR10 joints")
         move_ur10_joints(node, loop_iteration, sim_backend)
         time.sleep(1.5)
 
@@ -401,6 +407,9 @@ def main():
                         help="Choose which asset backend to use (isaacsim, o3de or gazebo).")
     args, unknown = parser.parse_known_args()
 
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.info("Starting warehouse simulation script")
+
     # Configure simulation backend (sets global variables)
     configure_simulation_backend(args.sim_backend)
 
@@ -414,11 +423,13 @@ def main():
         return
     
     # 1.1 Load world
+    logging.info("1.1 Loading world (if supported)")
     if SimulatorFeatures.WORLD_LOADING in features.features:
         load_world(node, LOAD_WORLD_SERVICE, WORLD_URI)
         time.sleep(1.5)
 
     # 1.2 Spawn and despawn object
+    logging.info("1.2 Spawning and despawning a table")
     initial_pose = PoseStamped()
     initial_pose.pose.position = Point(x=0.0, y=0.0, z=1.19)
     spawn_entity(node, SPAWN_ENTITY_SERVICE, TABLE_URI, format_entity_name("Table", RENAME_ENTITY), initial_pose)
@@ -427,6 +438,7 @@ def main():
     time.sleep(1.5)
 
     # 1.3 Spawn Table, some boxes, Dingo and UR10 with helper method
+    logging.info("1.3 Spawning the full scene")
     spawn_scene(node, SPAWN_ENTITY_SERVICE)
     
     # Move the robot (this makes play/pause more interesting)
@@ -437,11 +449,13 @@ def main():
         dingo_cmd_vel_pub.publish(cmd_vel)
     
     # 2.1 Play and pause simulation
+    logging.info("2.1 Playing and pausing the simulation")
     set_simulation_state(node, SET_SIMULATION_STATE_SERVICE, SimulationState.STATE_PLAYING)
     time.sleep(3)
     set_simulation_state(node, SET_SIMULATION_STATE_SERVICE, SimulationState.STATE_PAUSED)
 
     # 2.3 Reset simulation to initial state (SCOPE_STATE); move one cube 30 cm up
+    logging.info("2.2 Resetting simulation and moving some cubes")
     reset_simulation(node, RESET_SIMULATION_SERVICE)
     time.sleep(1.5)
     pose = PoseStamped()
@@ -452,19 +466,23 @@ def main():
     time.sleep(1.5)
 
     # 2.2 Step simulation
+    logging.info("2.3 Stepping the simulation")
     for _ in range(15):
         step_simulation(node, STEP_SIMULATION_SERVICE, 2)
         # do some work while stepping
         time.sleep(0.1)
 
     # 3.1 - 3.3: Loop that spawns boxes around the table, moves the robot and continues when robot reaches a certain pose.
+    logging.info("3.x Looping the simulation with robot movement and box spawning")
     set_simulation_state(node, SET_SIMULATION_STATE_SERVICE, SimulationState.STATE_PLAYING)
     loop_simulation(node, args.sim_backend)
     time.sleep(3)
 
     # Unload world
+    logging.info("Terminating: unloading world (if supported)")
     if SimulatorFeatures.WORLD_LOADING in features.features:
         unload_world(node, UNLOAD_WORLD_SERVICE)
+    logging.info("Demo completed.")
 
 
 if __name__ == "__main__":
