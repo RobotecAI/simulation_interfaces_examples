@@ -15,6 +15,7 @@ from ur10_helpers import move_ur10_joints
 # ************************************
 DEMO_ASSET_PATH = os.getenv('DEMO_ASSET_PATH')
 
+
 def configure_simulation_backend(sim_backend: str):
     """Configure asset URIs, service names, and entity naming based on simulation backend.
     
@@ -75,6 +76,7 @@ def configure_simulation_backend(sim_backend: str):
     # Configure entity naming
     RENAME_ENTITY = (sim_backend == "isaacsim")
 
+
 def format_entity_name(entity_name: str, rename: bool) -> str:
     """Format entity name according to simulation backend requirements.
     
@@ -90,6 +92,7 @@ def format_entity_name(entity_name: str, rename: bool) -> str:
 # Simulation interfaces helper methods
 # ************************************
 
+
 def get_features(node: Node, service_name: str) -> SimulatorFeatures:
     from simulation_interfaces.srv import GetSimulatorFeatures
     get_features_client = node.create_client(GetSimulatorFeatures, service_name)
@@ -101,6 +104,7 @@ def get_features(node: Node, service_name: str) -> SimulatorFeatures:
     else:
         print(f"Failed to call get_simulator_features service: {future.result().result.error_message}")
         return None
+
 
 def load_world(node: Node, service_name: str, uri: str) -> bool:
     from simulation_interfaces.srv import LoadWorld
@@ -114,6 +118,7 @@ def load_world(node: Node, service_name: str, uri: str) -> bool:
     else:
         print(f"Failed to load world {req.uri}: {future.result().result.error_message}")    
         return False
+
 
 def spawn_entity(node: Node, service_name: str, uri: str, name: str, initial_pose: PoseStamped) -> bool:
     from simulation_interfaces.srv import SpawnEntity
@@ -131,6 +136,7 @@ def spawn_entity(node: Node, service_name: str, uri: str, name: str, initial_pos
         print(f"Failed to spawn {name}: {future.result().result.error_message}")
         return False
 
+
 def delete_entity(node: Node, service_name: str, name: str) -> bool:
     from simulation_interfaces.srv import DeleteEntity
     delete_entity_client = node.create_client(DeleteEntity, service_name)
@@ -144,6 +150,7 @@ def delete_entity(node: Node, service_name: str, name: str) -> bool:
         print(f"Failed to delete entity '{name}': {future.result().result.error_message}")
         return False
 
+
 def get_entity_state(node: Node, service_name: str, name: str) -> PoseStamped:
     from simulation_interfaces.srv import GetEntityState
     get_entity_state_client = node.create_client(GetEntityState, service_name)
@@ -156,6 +163,7 @@ def get_entity_state(node: Node, service_name: str, name: str) -> PoseStamped:
     else:
         print(f"Failed to get entity state for '{name}': {future.result().result.error_message}")
         return None
+
 
 def set_entity_state(node: Node, service_name: str, name: str, pose: PoseStamped) -> bool:
     from simulation_interfaces.msg import EntityState
@@ -174,6 +182,7 @@ def set_entity_state(node: Node, service_name: str, name: str, pose: PoseStamped
         print(f"Failed to move {name} to new position: {future.result().result.error_message}")
         return False
 
+
 def set_simulation_state(node: Node, service_name: str, state: int) -> bool:
     from simulation_interfaces.srv import SetSimulationState
     set_state_client = node.create_client(SetSimulationState, service_name)
@@ -186,6 +195,7 @@ def set_simulation_state(node: Node, service_name: str, state: int) -> bool:
     else:
         print(f"Failed to set simulation state: {future.result().result.error_message}")
         return False
+
 
 def step_simulation(node: Node, service_name: str, steps: int) -> bool:
     from simulation_interfaces.srv import StepSimulation
@@ -200,6 +210,7 @@ def step_simulation(node: Node, service_name: str, steps: int) -> bool:
         print(f"Failed to step simulation: {future.result().result.error_message}")
         return False
 
+
 def reset_simulation(node: Node, service_name: str) -> bool:
     from simulation_interfaces.srv import ResetSimulation
     reset_client = node.create_client(ResetSimulation, service_name)
@@ -212,6 +223,7 @@ def reset_simulation(node: Node, service_name: str) -> bool:
     else:
         print(f"Failed to reset simulation: {future.result().result.error_message}")
         return False
+
 
 def unload_world(node: Node, service_name: str) -> bool:
     from simulation_interfaces.srv import UnloadWorld
@@ -228,6 +240,7 @@ def unload_world(node: Node, service_name: str) -> bool:
 # ************************************
 # Demo methods
 # ************************************
+
 
 def spawn_scene(node: Node, service_name: str) -> bool:
     initial_pose = PoseStamped()
@@ -275,6 +288,7 @@ def spawn_scene(node: Node, service_name: str) -> bool:
             return False
     return True
 
+
 def spawn_boxes(node: Node, service_name: str, step: int) -> bool:
     box_positions_by_iteration = [
         [
@@ -310,6 +324,7 @@ def spawn_boxes(node: Node, service_name: str, step: int) -> bool:
             return False
 
     return True
+
 
 def loop_simulation(node: Node, sim_backend: str):
     dingo_positions = [
@@ -355,6 +370,7 @@ def loop_simulation(node: Node, sim_backend: str):
         move_ur10_joints(node, loop_iteration, sim_backend)
         time.sleep(1.5)
 
+
 def yaw_to_quaternion(yaw):
     """Convert a yaw angle (in radians) to a geometry_msgs.msg.Quaternion.
 
@@ -376,6 +392,8 @@ def yaw_to_quaternion(yaw):
 # ************************************
 # Main loop
 # ************************************
+
+
 def main():
     # Map simulation differences
     parser = argparse.ArgumentParser()
@@ -447,6 +465,7 @@ def main():
     # Unload world
     if SimulatorFeatures.WORLD_LOADING in features.features:
         unload_world(node, UNLOAD_WORLD_SERVICE)
+
 
 if __name__ == "__main__":
     main()
