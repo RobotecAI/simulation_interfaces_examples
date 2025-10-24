@@ -473,7 +473,7 @@ def main():
     set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"red_cube_5", RENAME_ENTITY), pose)
     time.sleep(1.5)
 
-    # 2.2 Step simulation
+    # 2.3 Step simulation
     logging.info("2.3 Stepping the simulation")
     for _ in range(15):
         step_simulation(node, STEP_SIMULATION_SERVICE, 2)
