@@ -327,17 +327,23 @@ def spawn_boxes(node: Node, service_name: str, step: int) -> bool:
     return True
 
 
+# Example loop: push 3 boxes to target poses with Dingo
 def loop_simulation(node: Node, sim_backend: str):
     logger = logging.getLogger(__name__)
     dingo_positions = [
         (-4.0, -2.5, 0.0, 0.0),
         (0.5, -3.5, 0.0, 1.5708),
-        (-4.0, 0.5, 0.0, 0.0)
+        (-4.0, 0.3, 0.0, 0.0)
     ]
     target_positions = [
-        Point(x=-2.5, y=-2.5, z=0.0),
-        Point(x=0.5, y=-2.0, z=0.0),
-        Point(x=-2.0, y=0.5, z=0.0)
+        Point(x=-2.0, y=-2.5, z=0.0),
+        Point(x=0.5, y=-1.0, z=0.0),
+        Point(x=-0.8, y=0.3, z=0.0)
+    ]
+    box_entities = [
+        "obstacle_box_0_0",
+        "obstacle_box_1_1",
+        "obstacle_box_2_0"
     ]
     dingo_cmd_vel_pub = node.create_publisher(Twist, '/cmd_vel', 10)
     cmd_vel = Twist()
@@ -353,28 +359,31 @@ def loop_simulation(node: Node, sim_backend: str):
         set_entity_state(node, SET_ENTITY_STATE_SERVICE, "Dingo", pose)
         target_reached = False
         target_pos = target_positions[loop_iteration]
+
+        # Push box until it reaches target position
         while not target_reached:
-            # Get current Dingo state
-            dingo_state = get_entity_state(node, GET_ENTITY_STATE_SERVICE, format_entity_name("Dingo", RENAME_ENTITY))
-            if dingo_state is None:
-                print("Failed to get Dingo state, stopping loop")
+            # Get current box state
+            box_state = get_entity_state(node, GET_ENTITY_STATE_SERVICE, format_entity_name(box_entities[loop_iteration], RENAME_ENTITY))
+            if box_state is None:
+                print("Failed to get box state, stopping loop")
                 break
             
-            current_pos = dingo_state.pose.position
+            current_pos = box_state.pose.position
             
             # Calculate distance to target
             dx = target_pos.x - current_pos.x
             dy = target_pos.y - current_pos.y
             if np.sqrt(dx**2 + dy**2) < 0.5:
-                logger.info("\tDingo reached target position")
+                logger.info("\tBox reached target position")
                 target_reached = True
             else:
                 cmd_vel.linear.x = 0.5
                 dingo_cmd_vel_pub.publish(cmd_vel)
 
+        # Extra: move UR10
         logger.info("\tMoving UR10 joints")
         move_ur10_joints(node, loop_iteration, sim_backend)
-        time.sleep(1.5)
+        time.sleep(1)
 
 
 def yaw_to_quaternion(yaw):
@@ -440,29 +449,28 @@ def main():
     # 1.3 Spawn Table, some boxes, Dingo and UR10 with helper method
     logging.info("1.3 Spawning the full scene")
     spawn_scene(node, SPAWN_ENTITY_SERVICE)
-    
-    # Move the robot (this makes play/pause more interesting)
-    dingo_cmd_vel_pub = node.create_publisher(Twist, '/cmd_vel', 10)
-    cmd_vel = Twist()
-    cmd_vel.linear.x = 1.0
-    for _ in range(30):
-        dingo_cmd_vel_pub.publish(cmd_vel)
-    
+
     # 2.1 Play and pause simulation
     logging.info("2.1 Playing and pausing the simulation")
     set_simulation_state(node, SET_SIMULATION_STATE_SERVICE, SimulationState.STATE_PLAYING)
     time.sleep(3)
     set_simulation_state(node, SET_SIMULATION_STATE_SERVICE, SimulationState.STATE_PAUSED)
 
-    # 2.3 Reset simulation to initial state (SCOPE_STATE); move one cube 30 cm up
-    logging.info("2.2 Resetting simulation and moving some cubes")
-    reset_simulation(node, RESET_SIMULATION_SERVICE)
-    time.sleep(1.5)
+    # 2.2 Move cubes with set_entity_state
+    logging.info("2.2 Moving cubes")
     pose = PoseStamped()
-    pose.pose.position = Point(x=-0.8, y=-1.3, z=1.59)  # Move blue_cube_0 30 cm up
+    pose.pose.position = Point(x=-0.8, y=-1.3, z=1.59)
     set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"blue_cube_0", RENAME_ENTITY), pose)
-    pose.pose.position = Point(x=-1.2, y=-1.3, z=1.59)  # Move red_cube_1 30 cm up
+    pose.pose.position = Point(x=-1.2, y=-1.7, z=1.59)
+    set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"blue_cube_3", RENAME_ENTITY), pose)
+    pose.pose.position = Point(x=-1.0, y=-1.5, z=1.59)
+    set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"blue_cube_4", RENAME_ENTITY), pose)
+    pose.pose.position = Point(x=-1.2, y=-1.3, z=1.59)
     set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"red_cube_1", RENAME_ENTITY), pose)
+    pose.pose.position = Point(x=-0.8, y=-1.7, z=1.59)
+    set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"red_cube_2", RENAME_ENTITY), pose)
+    pose.pose.position = Point(x=-0.9, y=-1.5, z=1.59) 
+    set_entity_state(node, SET_ENTITY_STATE_SERVICE, format_entity_name(f"red_cube_5", RENAME_ENTITY), pose)
     time.sleep(1.5)
 
     # 2.2 Step simulation
@@ -470,7 +478,7 @@ def main():
     for _ in range(15):
         step_simulation(node, STEP_SIMULATION_SERVICE, 2)
         # do some work while stepping
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     # 3.1 - 3.3: Loop that spawns boxes around the table, moves the robot and continues when robot reaches a certain pose.
     logging.info("3.x Looping the simulation with robot movement and box spawning")
