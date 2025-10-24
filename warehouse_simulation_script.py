@@ -336,8 +336,8 @@ def loop_simulation(node: Node, sim_backend: str):
         (-4.0, 0.3, 0.0, 0.0)
     ]
     target_positions = [
-        Point(x=-2, y=-2.5, z=0.0),
-        Point(x=0.5, y=-1, z=0.0),
+        Point(x=-2.0, y=-2.5, z=0.0),
+        Point(x=0.5, y=-1.0, z=0.0),
         Point(x=-0.8, y=0.3, z=0.0)
     ]
     box_entities = [
