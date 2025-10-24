@@ -374,7 +374,7 @@ def loop_simulation(node: Node, sim_backend: str):
             dx = target_pos.x - current_pos.x
             dy = target_pos.y - current_pos.y
             if np.sqrt(dx**2 + dy**2) < 0.5:
-                logger.info("\Box reached target position")
+                logger.info("\tBox reached target position")
                 target_reached = True
             else:
                 cmd_vel.linear.x = 0.5
