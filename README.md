@@ -9,7 +9,7 @@ This repository contains the example script using standardized simulation interf
     1.3. Spawn two robots and multiple static objects
 2. Start the simulation
     2.1. Play and pause simulation
-    2.2. Reset simulation to the initial state; move some objects
+    2.2. Move some objects
     2.3. Step simulation
 3. Loop the simulation
    3.1. Query the entity state of a robot
