@@ -345,7 +345,7 @@ def loop_simulation(node: Node, sim_backend: str):
         "obstacle_box_1_1",
         "obstacle_box_2_0"
     ]
-    dingo_cmd_vel_pub = node.create_publisher(Twist, '/cmd_vel', 10)
+    dingo_cmd_vel_pub = node.create_publisher(Twist, '/dingo/cmd_vel', 10)
     cmd_vel = Twist()
     for loop_iteration in range(3):
         logger.info(f"\t* loop {loop_iteration + 1}/3")
